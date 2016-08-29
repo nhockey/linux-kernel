@@ -138,6 +138,36 @@
 		assigned-clocks = <&clock CLK_MOUT_CAM0>;
 		assigned-clock-parents = <&clock CLK_XUSBXTI>;
 	};
+
+	vcc_sys_lcd: sys-lcd {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_5v";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpio = <&gpl0 4 GPIO_ACTIVE_HIGH>;
+	};
+
+	panel: panel@0 {
+		compatible = "chunghwa,claa070wp03xg";
+
+		power-supply = <&vcc_sys_lcd>;
+		enable-gpios = <&gpl0 2 GPIO_ACTIVE_HIGH>;
+		backlight = <&bl>;
+
+		port {
+			lcd_ep: endpoint {
+				remote-endpoint = <&rga_lvds>;
+			};
+		};
+	};
+
+	bl: backlight {
+		compatible = "pwm-backlight";
+		pwms = <&pwm 1 5000000 PWM_POLARITY_INVERTED>;
+		brightness-levels = <0 5 12 16 32 64 128 255>;
+		default-brightness-level = <5>;
+		power-supply = <&vcc_sys_lcd>;
+	};
 };
 
 &adc {
@@ -171,8 +201,28 @@
 	assigned-clock-rates = <0>, <176000000>;
 };
 
+&fimd {
+	pinctrl-0 = <&lcd_clk &lcd_data24>;
+	pinctrl-names = "default";
+	status = "okay";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		port@3 {
+			reg = <3>;
+			rga_lvds: endpoint {
+				remote-endpoint = <&lcd_ep>;
+			};
+		};
+	};
+};
+
 &hsotg {
 	dr_mode = "peripheral";
+	status = "okay";
+};
+
+&i2c_3 {
 	status = "okay";
 };
 
@@ -215,9 +265,9 @@
 
 &pwm {
 	status = "okay";
-	pinctrl-0 = <&pwm0_out>;
+	pinctrl-0 = <&pwm0_out &pwm1_out>;
 	pinctrl-names = "default";
-	samsung,pwm-outputs = <0>;
+	samsung,pwm-outputs = <0>, <1>;
 };
 
 &sdhci_2 {
